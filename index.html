@@ -717,8 +717,10 @@ async function getToken() {
   if (!accounts.length) return null;
   if (window.self !== window.top) { showError('Sessie verlopen. Meld opnieuw aan via het portaal.'); return null; }
   try {
-    await msalApp.acquireTokenRedirect({ scopes: SCOPES, account: accounts[0] });
-  } catch(e) {}
+    const r2 = await msalApp.acquireTokenPopup({ scopes: SCOPES, account: accounts[0] });
+    token = r2.accessToken;
+    return token;
+  } catch(e) { console.error('Token fout:', e); }
   return null;
 }
 
@@ -1910,11 +1912,20 @@ async function boot() {
           const tr = await msalApp.acquireTokenSilent({ scopes: SCOPES, account: accs[0] });
           token = tr.accessToken;
         } catch(e) { token = window._portalToken; }
+      } else if (window._portalEmail) {
+        // Probeer ssoSilent met loginHint
+        try {
+          const sso = await msalApp.ssoSilent({ scopes: SCOPES, loginHint: window._portalEmail });
+          token = sso.accessToken;
+        } catch(e) {
+          // ssoSilent mislukt - gebruik portaaltoken rechtstreeks
+          token = window._portalToken;
+        }
       } else {
-        // Geen eigen account gevonden - gebruik portal token als fallback
         token = window._portalToken;
       }
-      currentUser = accs[0] || { username: window._portalEmail || '', name: window._portalEmail || '' };
+      const updAccs = msalApp.getAllAccounts();
+      currentUser = updAccs[0] || { username: window._portalEmail || '', name: window._portalEmail || '' };
       await afterLogin();
       window._appBooted = true;
       return;
