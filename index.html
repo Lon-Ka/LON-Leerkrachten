@@ -704,18 +704,22 @@ function doLogout() {
 }
 
 async function getToken() {
-  if (window._portalToken) { token = window._portalToken; return token; }
+  // Probeer eerst eigen token via silent flow (ook als portal token beschikbaar is)
   const accounts = msalApp.getAllAccounts();
-  if (!accounts.length) return null;
-  try {
-    const r = await msalApp.acquireTokenSilent({ scopes: SCOPES, account: accounts[0] });
-    token = r.accessToken;
-    return token;
-  } catch(e) {
-    if (window.self !== window.top) { showError('Sessie verlopen. Meld opnieuw aan via het portaal.'); return null; }
-    await msalApp.acquireTokenRedirect({ scopes: SCOPES, account: accounts[0] });
-    return null;
+  if (accounts.length) {
+    try {
+      const r = await msalApp.acquireTokenSilent({ scopes: SCOPES, account: accounts[0] });
+      token = r.accessToken;
+      return token;
+    } catch(e) { /* silent mislukt - val terug op portal token */ }
   }
+  if (window._portalToken) { token = window._portalToken; return token; }
+  if (!accounts.length) return null;
+  if (window.self !== window.top) { showError('Sessie verlopen. Meld opnieuw aan via het portaal.'); return null; }
+  try {
+    await msalApp.acquireTokenRedirect({ scopes: SCOPES, account: accounts[0] });
+  } catch(e) {}
+  return null;
 }
 
 async function afterLogin() {
@@ -1899,7 +1903,18 @@ async function boot() {
     }
 
     if (window._portalToken) {
-      currentUser = msalApp.getAllAccounts()[0] || { username: window._portalEmail || '' };
+      // Portaal heeft ingelogd — probeer eigen token via silent flow
+      const accs = msalApp.getAllAccounts();
+      if (accs.length) {
+        try {
+          const tr = await msalApp.acquireTokenSilent({ scopes: SCOPES, account: accs[0] });
+          token = tr.accessToken;
+        } catch(e) { token = window._portalToken; }
+      } else {
+        // Geen eigen account gevonden - gebruik portal token als fallback
+        token = window._portalToken;
+      }
+      currentUser = accs[0] || { username: window._portalEmail || '', name: window._portalEmail || '' };
       await afterLogin();
       window._appBooted = true;
       return;
@@ -1913,7 +1928,7 @@ async function boot() {
           currentUser = { username: window._portalEmail || '' };
           await afterLogin(); window._appBooted = true; return;
         }
-        showError('Geen sessie gevonden. Meld aan via het MijnDigiKAntoor portaal.'); return;
+        showError('Geen sessie gevonden. Meld aan via het MijnDigiLoket portaal.'); return;
       }
       document.getElementById('auth-overlay').style.display = 'flex';
       return;
