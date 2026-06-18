@@ -6,7 +6,7 @@
 <title>LON-Leerkrachten</title>
 <style>
 :root {
-  --teal:       #1D9E75;
+  --teal-ka:       #1D9E75;
   --teal-dark:  #0F6E56;
   --teal-light: #E1F5EE;
   --teal-mid:   #9FE1CB;
@@ -36,7 +36,7 @@
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--gray-50);color:var(--gray-900);font-size:14px;overflow:hidden;height:100vh}
 
 /* ── Auth overlay ── */
-#auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,var(--teal-dark),var(--teal));display:flex;align-items:center;justify-content:center;z-index:1000}
+#auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#0F1D2E,#1F4E79);display:flex;align-items:center;justify-content:center;z-index:1000}
 .auth-card{background:white;border-radius:16px;padding:40px;width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.2)}
 .auth-logo{width:56px;height:56px;background:var(--teal-light);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
 .auth-card h1{font-size:22px;font-weight:700;margin-bottom:6px}
@@ -283,7 +283,7 @@ window.addEventListener('message', function(event) {
 <div id="auth-overlay">
   <div class="auth-card">
     <div class="auth-logo">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1F4E79" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     </div>
     <h1>LON-Leerkrachten</h1>
     <p>Scholengroep Londerzeel BaO<br>Meld aan met je schoolaccount om verder te gaan.</p>
