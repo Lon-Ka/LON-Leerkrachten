@@ -6,10 +6,10 @@
 <title>LON-Leerkrachten</title>
 <style>
 :root {
-  --teal:       #1F4E79;
-  --teal-dark:  #154060;
-  --teal-light: #EAF0FB;
-  --teal-mid:   #B8CFF0;
+  --teal:       #1D9E75;
+  --teal-dark:  #0F6E56;
+  --teal-light: #E1F5EE;
+  --teal-mid:   #9FE1CB;
   --amber:      #F59E0B;
   --amber-bg:   #FEF3C7;
   --red:        #EF4444;
@@ -119,7 +119,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--gray-50);color
 .person-card{display:flex;align-items:center;gap:12px;padding:12px 16px;background:white;border:1px solid var(--gray-200);border-radius:10px;cursor:pointer;transition:border-color .15s;margin-bottom:8px}
 .person-card:hover{border-color:var(--teal)}
 .person-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
-.av-blue-dark{background:var(--teal-light);color:var(--teal-dark)}
+.av-teal{background:var(--teal-light);color:var(--teal-dark)}
 .av-blue{background:var(--blue-bg);color:#1D4ED8}
 .av-purple{background:var(--purple-bg);color:#6D28D9}
 .av-amber{background:var(--amber-bg);color:#B45309}
@@ -206,7 +206,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--gray-50);color
 </style>
 
 <script>
-// Verplicht gebruik via MijnDigiKAntoor portaal
+// Verplicht gebruik via MijnDigiLoket portaal
 if (window.self === window.top) {
     document.addEventListener('DOMContentLoaded', function() {
         document.body.innerHTML = `
@@ -224,14 +224,14 @@ if (window.self === window.top) {
                     Toegang via portaal vereist
                 </h2>
                 <p style="margin:0 0 28px; color:#6B7A8D; max-width:360px; line-height:1.5;">
-                    Deze applicatie is enkel beschikbaar via het MijnDigiKAntoor portaal.
+                    Deze applicatie is enkel beschikbaar via het MijnDigiLoket portaal.
                 </p>
                 <a href="https://lon-ka.github.io/KA-portaal/"
                    style="display:inline-flex; align-items:center; gap:10px;
                           padding:14px 28px; background:#0F1D2E; color:#fff;
                           text-decoration:none; border-radius:10px; font-weight:600;
                           font-size:.95rem;">
-                    Naar MijnDigiKAntoor
+                    Naar MijnDigiLoket
                 </a>
             </div>`;
     });
@@ -252,12 +252,12 @@ if (window.self === window.top) {
         </svg>
         <h2 style="margin:0 0 8px;font-size:1.4rem;color:#1C2B3A;">Toegang via portaal vereist</h2>
         <p style="margin:0 0 28px;color:#6B7A8D;max-width:360px;line-height:1.5;">
-          Deze applicatie is enkel beschikbaar via het MijnDigiKAntoor portaal.
+          Deze applicatie is enkel beschikbaar via het MijnDigiLoket portaal.
         </p>
         <a href="https://lon-ka.github.io/KA-portaal/"
            style="display:inline-flex;align-items:center;gap:10px;padding:14px 28px;
                   background:#0F1D2E;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;">
-          Naar MijnDigiKAntoor
+          Naar MijnDigiLoket
         </a>
       </div>`;
   });
@@ -273,10 +273,7 @@ window.addEventListener('message', function(event) {
   if (window._portalToken) return;
   window._portalToken = event.data.token;
   window._portalEmail = event.data.email || '';
-  if (!window._appBooted) {
-    // Kleine vertraging zodat MSAL volledig geïnitialiseerd is
-    setTimeout(function() { if (!window._appBooted) boot(); }, 100);
-  }
+  if (!window._appBooted) boot();
 });
 </script>
 </head>
@@ -286,7 +283,7 @@ window.addEventListener('message', function(event) {
 <div id="auth-overlay">
   <div class="auth-card">
     <div class="auth-logo">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1F4E79" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     </div>
     <h1>LON-Leerkrachten</h1>
     <p>Scholengroep Londerzeel BaO<br>Meld aan met je schoolaccount om verder te gaan.</p>
@@ -354,27 +351,21 @@ const CONFIG = {
 };
 
 // !! Na setup.html invullen:
-const DIRECTIES = {
-  CS: { naam: "Katelijne Jespers", email: "directie@centrumschool.londerzeel.be" },
-  KO: { naam: "Farah De Clercq",  email: "directie@kouterschool.londerzeel.be" },
-  TE: { naam: "Pieter Sarens",    email: "directie@terelst.londerzeel.be" },
-};
-
 const LIST_IDS = {
-  BEHEER_Toegang:   "953b7be1-b5f4-4487-b92e-4537dd4c7ad1",
+  BEHEER_Toegang: '953b7be1-b5f4-4487-b92e-4537dd4c7ad1',
   CS_Leerkrachten: "6f626002-08ba-4632-8747-1fc2c77dc80b", CS_Gesprekken: "e8b8ee8a-3be6-470a-8211-5dec3a91a07d", CS_Opmerkingen: "c187fa2b-267f-4ee3-bd0f-396e61ee0cd1", CS_POP: "023b0080-91a3-4455-bdb4-b8f0df93862d",
   KO_Leerkrachten: "31f3c325-d85f-4bfe-841b-7d9309149f01", KO_Gesprekken: "15fa17d1-8480-4ba2-9311-2791c49da07b", KO_Opmerkingen: "1e939e08-ee77-4187-be42-66f9438a3cc2", KO_POP: "1a945673-31bd-45f6-bbb4-d15a8cabd1d1",
   TE_Leerkrachten: "cf52e172-8e33-47bd-b640-4d9f1b0fe9f3", TE_Gesprekken: "d96d4615-33a4-4005-b542-e4d5e15fc71a", TE_Opmerkingen: "02aee95f-778e-4be5-9ba7-80f1ab1d31b3", TE_POP: "1b8ed17f-f427-40cd-ae62-9b71b070758e",
-  SOL_Sollicitanten: "8ea04e60-fd06-4288-937c-04e456f4805d", SOL_Gesprekken: "7d30ee26-55f2-47d7-93fd-e4938c55d920", SOL_Documenten: "a0005c04-abe6-4dee-bf0d-46426effac1b",
-  SOL_Referenties: "b9c92a47-49ec-4ccd-8dc6-0d51de619989", SOL_Communicatie: "e5904c11-2621-4afa-ac9c-9cf1296b620e",
-  SOL_Bijlagen: "3fab3f5b-7b8d-4df1-a459-492bb2e215bc",
+  SOL_Sollicitanten: '8ea04e60-fd06-4288-937c-04e456f4805d', SOL_Gesprekken: '7d30ee26-55f2-47d7-93fd-e4938c55d920', SOL_Documenten: 'a0005c04-abe6-4dee-bf0d-46426effac1b',
+  SOL_Referenties: 'b9c92a47-49ec-4ccd-8dc6-0d51de619989', SOL_Communicatie: 'e5904c11-2621-4afa-ac9c-9cf1296b620e',
+  SOL_Bijlagen: '3fab3f5b-7b8d-4df1-a459-492bb2e215bc',
   BEHEER_Functies: "", // In te vullen na aanmaken via setup.html of beheer
 };
 
 const SCHOOLS = [
-  { key: "CS", name: "Centrumschool", color: "av-blue-dark" },
-  { key: "KO", name: "Kouterschool",   color: "av-blue" },
-  { key: "TE", name: "School Ter Elst", color: "av-purple" },
+  { key: "CS", name: "Centrumschool", color: "av-teal" },
+  { key: "KO", name: "Kouterschool",        color: "av-blue" },
+  { key: "TE", name: "School Ter Elst",   color: "av-purple" },
 ];
 
 const SOL_STATUSES = ["Nieuw","Uitgenodigd","Gesprek","Beslissing","Afgesloten"];
@@ -694,7 +685,7 @@ function doLogin() {
   const btn = document.getElementById('btn-auth');
   btn.disabled = true; btn.textContent = 'Aanmelden...';
   try {
-    if(window.self !== window.top){ document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;"><div><p style="font-size:1rem;color:#333;">Sessie verlopen.</p><p style="font-size:.85rem;color:#666;">Meld opnieuw aan via het MijnDigiKAntoor portaal.</p></div></div>'; return; }
+    if(window.self !== window.top){ document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px;"><div><p style="font-size:1rem;color:#333;">Sessie verlopen.</p><p style="font-size:.85rem;color:#666;">Meld opnieuw aan via het MijnDigiLoket portaal.</p></div></div>'; return; }
     msalApp.loginRedirect({ scopes: ["Sites.ReadWrite.All"] });
   } catch(e) {
     document.getElementById('auth-err').textContent = e.message;
@@ -707,27 +698,19 @@ function doLogout() {
 }
 
 async function getToken() {
-  // Probeer eerst eigen token via silent flow (ook als portal token beschikbaar is)
-  const accounts = msalApp.getAllAccounts();
-  if (accounts.length) {
-    try {
-      const r = await msalApp.acquireTokenSilent({ scopes: SCOPES, account: accounts[0] });
-      token = r.accessToken;
-      return token;
-    } catch(e) { /* silent mislukt - val terug op portal token */ }
-  }
   if (window._portalToken) { token = window._portalToken; return token; }
+  const accounts = msalApp.getAllAccounts();
   if (!accounts.length) return null;
-  if (window.self !== window.top) { showError('Sessie verlopen. Meld opnieuw aan via het portaal.'); return null; }
   try {
-    const r2 = await msalApp.acquireTokenPopup({ scopes: SCOPES, account: accounts[0] });
-    token = r2.accessToken;
+    const r = await msalApp.acquireTokenSilent({ scopes: SCOPES, account: accounts[0] });
+    token = r.accessToken;
     return token;
-  } catch(e) { console.error('Token fout:', e); }
-  return null;
+  } catch(e) {
+    if (window.self !== window.top) { showError('Sessie verlopen. Meld opnieuw aan via het portaal.'); return null; }
+    await msalApp.acquireTokenRedirect({ scopes: SCOPES, account: accounts[0] });
+    return null;
+  }
 }
-
-function doLogin() { boot(); }
 
 async function afterLogin() {
   await getToken();
@@ -752,7 +735,7 @@ async function loadUserAccess(email) {
     const f = match.fields;
     return {
       naam: f.Naam || currentUser.name, email: f.Email, rol: f.Rol,
-      scholen: [f.SchoolCS && "CS", f.SchoolKO && "KO", f.SchoolTE && "TE"].filter(Boolean),
+      scholen: [f.SchoolKIE && "CS", f.SchoolKEI && "KO", f.SchoolMUL && "TE"].filter(Boolean),
       niveau: f.Niveau, sol: true,
     };
   } catch(e) {
@@ -838,7 +821,7 @@ function fmtDate(d) {
 function today() { return new Date().toISOString().slice(0,10); }
 
 function avatarColor(name) {
-  const colors = ['av-blue-dark','av-blue','av-purple','av-amber'];
+  const colors = ['av-teal','av-blue','av-purple','av-amber'];
   return colors[(name||'').charCodeAt(0) % colors.length];
 }
 
@@ -865,7 +848,7 @@ function buildSidebar() {
     rl.textContent = userAccess.rol || userAccess.niveau;
   }
 
-  const schoolColors = { CS:'#1F4E79', KO:'#3B82F6', TE:'#8B5CF6' };
+  const schoolColors = { CS:'#1D9E75', KO:'#3B82F6', TE:'#8B5CF6' };
 
   let html = `
     <div class="sb-section">Navigatie</div>
@@ -961,7 +944,7 @@ async function showDashboard() {
           <div class="card-title" style="margin-bottom:10px">Scholen</div>
           ${SCHOOLS.filter(s => userAccess?.scholen.includes(s.key)).map(s => `
             <div class="person-card" onclick="showSchool('${s.key}')">
-              <div class="person-avatar av-blue-dark" style="font-size:16px">🏫</div>
+              <div class="person-avatar av-teal" style="font-size:16px">🏫</div>
               <div class="person-info">
                 <div class="person-name">${s.name}</div>
                 <div class="person-meta">${counts[s.key]} leerkracht${counts[s.key]!==1?'en':''} · Sleutel: ${s.key}</div>
@@ -1924,7 +1907,7 @@ async function boot() {
           currentUser = { username: window._portalEmail || '' };
           await afterLogin(); window._appBooted = true; return;
         }
-        showError('Geen sessie gevonden. Meld aan via het MijnDigiKAntoor portaal.'); return;
+        showError('Geen sessie gevonden. Meld aan via het MijnDigiLoket portaal.'); return;
       }
       document.getElementById('auth-overlay').style.display = 'flex';
       return;
