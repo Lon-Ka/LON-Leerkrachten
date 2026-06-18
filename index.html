@@ -1896,7 +1896,6 @@ async function boot() {
       currentUser = msalApp.getAllAccounts()[0] || { username: window._portalEmail || '' };
       await afterLogin();
       window._appBooted = true;
-      if (window.self !== window.top) document.body.classList.add("in-portal");
       return;
     }
 
