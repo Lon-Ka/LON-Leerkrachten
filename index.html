@@ -322,7 +322,29 @@ window.addEventListener('message', function(event) {
       <!-- dynamisch gebouwd -->
     </div>
     <div style="padding:12px 16px;border-top:1px solid var(--gray-200)"><button onclick="openHelp()" style="width:100%;padding:8px;font-size:12px;background:transparent;border:1px solid var(--gray-200);border-radius:6px;cursor:pointer;color:#888;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px">&#63; Help</button></div>
-    
+  </nav><!-- end sidebar -->
+
+  <!-- Main content area -->
+  <main class="main">
+    <div id="main-area" style="flex:1;overflow-y:auto;display:flex;flex-direction:column">
+      <!-- Content loaded dynamically -->
+    </div>
+  </main>
+
+</div><!-- end #app -->
+
+<!-- HELP DRAWER -->
+<div class="help-overlay" id="helpOverlay" onclick="closeHelp()"></div>
+<div class="help-drawer" id="helpDrawer">
+  <div class="help-hdr" style="background:#1A6B4A">
+    <h2>&#9432; Help &mdash; Leerkrachten</h2>
+    <button class="help-close" onclick="closeHelp()">&#x2715;</button>
+  </div>
+  <div class="help-nav"><button class="help-tab  active" onclick="showHelpTab('algemeen',this)">Algemeen</button><button class="help-tab" onclick="showHelpTab('personeel',this)">Personeelsgegevens</button><button class="help-tab" onclick="showHelpTab('documenten',this)">Documenten</button><button class="help-tab" onclick="showHelpTab('beheer',this)">Beheer</button></div><div class="help-body"><div class="help-section  active" id="help-algemeen"><h3 style="color:#1A6B4A">&#8505; Over Leerkrachten</h3><p>Centraliseert personeelsgegevens en documenten. Enkel voor directie via het portaal.</p></div><div class="help-section" id="help-personeel"><h3 style="color:#1A6B4A">&#128100; Personeelsgegevens</h3><div class="help-step"><div class="help-step-nr" style="background:#1A6B4A">1</div><div class="help-step-txt">Zoek via zoekbalk of schoolfilter</div></div><div class="help-step"><div class="help-step-nr" style="background:#1A6B4A">2</div><div class="help-step-txt">Klik op naam → detailscherm</div></div><div class="help-step"><div class="help-step-nr" style="background:#1A6B4A">3</div><div class="help-step-txt">Klik <strong>Bewerken</strong> om gegevens aan te passen</div></div></div><div class="help-section" id="help-documenten"><h3 style="color:#1A6B4A">&#128196; Documenten</h3><p>Per personeelslid: gebruikersovereenkomsten ICT, functieprofiel, evaluatiedocumenten.</p><div class="help-tip"><strong>Opgeslagen in SharePoint</strong> en beveiligd per school.</div></div><div class="help-section" id="help-beheer"><h3 style="color:#1A6B4A">&#9881; Beheer</h3><p>Via <strong>Toegangsbeheer</strong> (systeembeheer) worden rollen en schoolkoppelingen ingesteld. Contacteer de ICT-coördinator voor wijzigingen.</p></div></div>
+  <div class="help-footer">Scholengroep Kapelle-op-den-Bos BaO — ict@centrumschool.londerzeel.be</div>
+</div>
+
+
 <script>
 // ════════════════════════════════════════════════════════════════
 // MSAL CDN is loaded in <head> - see script src tag
@@ -663,17 +685,27 @@ async function afterLogin() {
 
     // Rol ophalen uit BEHEER_Toegang
     const alleGebruikers = await getListItems(LIST_IDS.BEHEER_Toegang);
-    const gebruiker = alleGebruikers.find(u => (u.Title || '').toLowerCase() === email);
+    const gebruiker = alleGebruikers.find(u => (u.Email || u.Title || '').toLowerCase() === email);
     if (!gebruiker) {
       showError(`Uw account (${email}) is niet geconfigureerd in BEHEER_Toegang. Contacteer de ICT-coördinator.`);
       return;
+    }
+
+    // Scholen via aparte checkbox kolommen (SchoolCS, SchoolKO, SchoolTE)
+    const scholen = [];
+    if (gebruiker.SchoolCS) scholen.push('CS');
+    if (gebruiker.SchoolKO) scholen.push('KO');
+    if (gebruiker.SchoolTE) scholen.push('TE');
+    // Fallback: tekstveld indien aanwezig
+    if (scholen.length === 0 && gebruiker.Scholen) {
+      scholen.push(...(gebruiker.Scholen).split(';').map(s => s.trim()).filter(Boolean));
     }
 
     userAccess = {
       email,
       naam: me.displayName || email,
       rol: (gebruiker.Rol || 'leerkracht').toLowerCase(),
-      scholen: (gebruiker.Scholen || '').split(';').map(s => s.trim()).filter(Boolean),
+      scholen,
     };
 
     // Sidebar bijwerken
@@ -1744,6 +1776,40 @@ function closeHelp(){document.getElementById('helpOverlay').classList.remove('on
 function showHelpTab(id,btn){document.querySelectorAll('.help-section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.help-tab').forEach(t=>t.classList.remove('active'));document.getElementById('help-'+id).classList.add('active');btn.classList.add('active');}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeHelp();});
 
+// ════════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════════
+
+function showLoader() {
+  const main = document.getElementById('main-area');
+  if (main) main.innerHTML = '<div style="padding:40px;text-align:center;color:#888">Laden...</div>';
+}
+
+function hideLoader() {}
+
+function initials(naam) {
+  if (!naam) return '?';
+  return naam.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+function avatarColor(naam) {
+  const colors = ['av-blue', 'av-teal', 'av-purple', 'av-orange', 'av-green', 'av-red'];
+  if (!naam) return colors[0];
+  return colors[naam.charCodeAt(0) % colors.length];
+}
+
+const FUNCTIES_BIBLIOTHEEK = [
+  { code: 'KL',  titel: 'Kleuteronderwijzer(es)',           omschrijving: 'Geeft les aan kleuters (2,5-6 jaar).' },
+  { code: 'LO',  titel: 'Onderwijzer(es) lager onderwijs', omschrijving: 'Geeft les in het lager onderwijs (6-12 jaar).' },
+  { code: 'ZL',  titel: 'Zorgleerkracht',                   omschrijving: 'Biedt extra ondersteuning aan leerlingen met specifieke noden.' },
+  { code: 'IL',  titel: 'Intern begeleider / Zorgcoördinator', omschrijving: 'Coördineert de zorgwerking binnen de school.' },
+  { code: 'GD',  titel: 'Directeur',                        omschrijving: 'Pedagogisch en administratief leider van de school.' },
+  { code: 'ADM', titel: 'Administratief medewerker',        omschrijving: 'Beheert de schooladministratie.' },
+  { code: 'OND', titel: 'Ondersteuner',                     omschrijving: 'Biedt ondersteuning in de klas.' },
+  { code: 'STA', titel: 'Stagiair(e)',                      omschrijving: 'Student in opleiding.' },
+];
+
+
 document.addEventListener('DOMContentLoaded', function() {
   window.addEventListener('message', function(event) {
     if (event.origin !== 'https://lon-ka.github.io') return;
@@ -1758,16 +1824,5 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 </script>
-
-<!-- HELP DRAWER -->
-<div class="help-overlay" id="helpOverlay" onclick="closeHelp()"></div>
-<div class="help-drawer" id="helpDrawer">
-  <div class="help-hdr" style="background:#1A6B4A">
-    <h2>&#9432; Help &mdash; Leerkrachten</h2>
-    <button class="help-close" onclick="closeHelp()">&#x2715;</button>
-  </div>
-  <div class="help-nav"><button class="help-tab  active" onclick="showHelpTab('algemeen',this)">Algemeen</button><button class="help-tab" onclick="showHelpTab('personeel',this)">Personeelsgegevens</button><button class="help-tab" onclick="showHelpTab('documenten',this)">Documenten</button><button class="help-tab" onclick="showHelpTab('beheer',this)">Beheer</button></div><div class="help-body"><div class="help-section  active" id="help-algemeen"><h3 style="color:#1A6B4A">&#8505; Over Leerkrachten</h3><p>Centraliseert personeelsgegevens en documenten. Enkel voor directie via het portaal.</p></div><div class="help-section" id="help-personeel"><h3 style="color:#1A6B4A">&#128100; Personeelsgegevens</h3><div class="help-step"><div class="help-step-nr" style="background:#1A6B4A">1</div><div class="help-step-txt">Zoek via zoekbalk of schoolfilter</div></div><div class="help-step"><div class="help-step-nr" style="background:#1A6B4A">2</div><div class="help-step-txt">Klik op naam → detailscherm</div></div><div class="help-step"><div class="help-step-nr" style="background:#1A6B4A">3</div><div class="help-step-txt">Klik <strong>Bewerken</strong> om gegevens aan te passen</div></div></div><div class="help-section" id="help-documenten"><h3 style="color:#1A6B4A">&#128196; Documenten</h3><p>Per personeelslid: gebruikersovereenkomsten ICT, functieprofiel, evaluatiedocumenten.</p><div class="help-tip"><strong>Opgeslagen in SharePoint</strong> en beveiligd per school.</div></div><div class="help-section" id="help-beheer"><h3 style="color:#1A6B4A">&#9881; Beheer</h3><p>Via <strong>Toegangsbeheer</strong> (systeembeheer) worden rollen en schoolkoppelingen ingesteld. Contacteer de ICT-coördinator voor wijzigingen.</p></div></div>
-  <div class="help-footer">Scholengroep Kapelle-op-den-Bos BaO — ict@centrumschool.londerzeel.be</div>
-</div>
 </body>
 </html>
