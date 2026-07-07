@@ -124,7 +124,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--g50);color:var
 
 <div id="auth-overlay">
   <div class="auth-card">
-    <h1>🔧 KA Beheer</h1>
+    <h1>🔧 LON Beheer</h1>
     <p>Enkel toegankelijk voor systeembeheerder (Wim Cools).<br>Meld aan met je M365-beheerdersaccount.</p>
     <button class="auth-btn" onclick="doLogin()">Aanmelden met Microsoft 365</button>
     <p class="auth-err" id="auth-err"></p>
@@ -135,7 +135,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--g50);color:var
   <div class="layout">
     <nav class="sidebar">
       <div class="sb-head">
-        <div class="sb-title">KA Beheer</div>
+        <div class="sb-title">LON Beheer</div>
         <div class="sb-sub" id="sb-user">—</div>
       </div>
       <div class="sb-nav">
@@ -176,13 +176,6 @@ const CONFIG = {
   tenantId: "655d15e1-e5fc-4868-8462-8463dc0ff014",
   siteId:   "londerwijs.sharepoint.com,2305d2c7-4a38-4256-92c0-06474940b240,4034d550-53b5-4591-8158-20a6eb9ca0bd",
   redirectUri: window.location.href.split('?')[0],
-};
-
-// !! Na setup.html invullen:
-const DIRECTIES = {
-  CS: { naam: "Katelijne Jespers", email: "directie@centrumschool.londerzeel.be" },
-  KO: { naam: "Farah De Clercq",  email: "directie@kouterschool.londerzeel.be" },
-  TE: { naam: "Pieter Sarens",    email: "directie@terelst.londerzeel.be" },
 };
 
 const LIST_IDS = {
@@ -546,7 +539,7 @@ const DEFAULT_COMPS = [
 
 function showCompetenties() {
   setNav('nav-comp');
-  const stored = localStorage.getItem('baoka_comps');
+  const stored = localStorage.getItem('lon_comps');
   const comps = stored ? JSON.parse(stored) : DEFAULT_COMPS;
 
   const html = comps.map((dom, di) => `
@@ -573,27 +566,27 @@ function showCompetenties() {
 function addCompetentie(di) {
   const naam = prompt('Naam van de nieuwe competentie:');
   if (!naam) return;
-  const stored = localStorage.getItem('baoka_comps');
+  const stored = localStorage.getItem('lon_comps');
   const comps = stored ? JSON.parse(stored) : DEFAULT_COMPS;
   comps[di].items.push(naam.trim());
-  localStorage.setItem('baoka_comps', JSON.stringify(comps));
+  localStorage.setItem('lon_comps', JSON.stringify(comps));
   toast('Competentie toegevoegd');
   showCompetenties();
 }
 
 function removeComp(di, ii) {
   if (!confirm('Competentie verwijderen?')) return;
-  const stored = localStorage.getItem('baoka_comps');
+  const stored = localStorage.getItem('lon_comps');
   const comps = stored ? JSON.parse(stored) : DEFAULT_COMPS;
   comps[di].items.splice(ii, 1);
-  localStorage.setItem('baoka_comps', JSON.stringify(comps));
+  localStorage.setItem('lon_comps', JSON.stringify(comps));
   toast('Verwijderd');
   showCompetenties();
 }
 
 function resetComps() {
   if (!confirm('Competentiekader herstellen naar standaard?')) return;
-  localStorage.removeItem('baoka_comps');
+  localStorage.removeItem('lon_comps');
   toast('Hersteld');
   showCompetenties();
 }
