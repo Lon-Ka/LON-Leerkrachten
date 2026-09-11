@@ -354,7 +354,7 @@ window.addEventListener('message', function(event) {
 // CONFIG
 // ════════════════════════════════════════════════════════════════
 const CONFIG = {
-  clientId:   '481e8cb4-58ca-49b1-bb8b-5b02cbb45b4c',
+  clientId:   '08dcc1b5-6041-4e67-ba6f-14650d4e6e62',
   tenantId:   '655d15e1-e5fc-4868-8462-8463dc0ff014',
   siteId:     'londerwijs.sharepoint.com:/sites/BaO-Leerkrachten',
   redirectUri: 'https://lon-ka.github.io/LON-Leerkrachten/',
@@ -524,7 +524,7 @@ function buildNav() {
   }
 
   // Sollicitanten (directeur/systeembeheerder)
-  if (['directeur','systeembeheerder'].includes(userAccess.rol)) {
+  if (['directie','systeembeheerder'].includes(userAccess.rol)) {
     html += '<div class="sb-section">Werving</div>';
     html += `<div class="sb-item" data-nav="sol" onclick="showSollicitanten()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -569,7 +569,7 @@ async function showSchool(key) {
           <div class="page-title">${school.name}</div>
           <div class="page-sub">${actief.length} leerkrachten</div>
         </div>
-        ${['directeur','systeembeheerder'].includes(userAccess?.rol) ? `
+        ${['directie','systeembeheerder'].includes(userAccess?.rol) ? `
         <button class="btn btn-primary" onclick="showAddLeerkracht()" style="margin-left:auto">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Toevoegen
@@ -648,7 +648,7 @@ async function showLeerkracht(id, tab = 'gesprekken') {
 
 function renderGesprekken(l, items) {
   const sorted = [...items].sort((a,b) => new Date(b.Datum||0) - new Date(a.Datum||0));
-  const addBtn = ['directeur','systeembeheerder'].includes(userAccess?.rol)
+  const addBtn = ['directie','systeembeheerder'].includes(userAccess?.rol)
     ? `<button class="btn btn-primary" onclick="showAddGesprek('${l.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Gesprek toevoegen</button>`
     : '';
   return `
@@ -664,7 +664,7 @@ function renderGesprekken(l, items) {
               <div style="font-weight:600;font-size:13px">${g.Type||''}</div>
               <div style="font-size:11px;color:var(--gray-400)">${fmtDate(g.Datum)}</div>
             </div>
-            ${['directeur','systeembeheerder'].includes(userAccess?.rol) ? `<button class="btn btn-sm btn-danger" onclick="deleteGesprek('${g.id}','${l.id}')">✕</button>` : ''}
+            ${['directie','systeembeheerder'].includes(userAccess?.rol) ? `<button class="btn btn-sm btn-danger" onclick="deleteGesprek('${g.id}','${l.id}')">✕</button>` : ''}
           </div>
           <div style="margin-top:8px;font-size:13px">${g.Nota||''}</div>
           ${g.Doelen ? `<div style="margin-top:8px;padding:8px 10px;background:var(--gray-50);border-radius:6px;font-size:12px;color:var(--gray-600)">🎯 ${g.Doelen}</div>` : ''}
@@ -728,7 +728,7 @@ async function afterLogin() {
     // Eerste school automatisch laden (als beschikbaar)
     if (userAccess.scholen.length > 0) {
       showSchool(userAccess.scholen[0]);
-    } else if (['directeur','systeembeheerder'].includes(userAccess.rol)) {
+    } else if (['directie','systeembeheerder'].includes(userAccess.rol)) {
       showSchool(SCHOOLS[0].key);
     }
 
