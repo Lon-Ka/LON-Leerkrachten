@@ -716,15 +716,18 @@ async function afterLogin() {
   await getToken();
   // Load access rights
   userAccess = await loadUserAccess(currentUser.username);
-  if (!userAccess) { document.getElementById('auth-err').textContent = "Geen toegang. Contacteer de systeembeheerder (Wim Cools)."; document.getElementById('btn-auth').disabled = false; return; }
+  if (!userAccess) { document.getElementById('auth-overlay').style.display = 'flex'; document.getElementById('auth-err').textContent = accessError || "Geen toegang. Contacteer de systeembeheerder (Wim Cools)."; document.getElementById('btn-auth').disabled = false; return; }
   document.getElementById('auth-overlay').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   buildSidebar();
   showDashboard();
 }
 
+let accessError = null;
 async function loadUserAccess(email) {
-  if (!LIST_IDS.BEHEER_Toegang) return { naam: currentUser.name, email, scholen: ["CS","KO","TE"], niveau: "Systeembeheer", sol: true };
+  accessError = null;
+  // Geen toegangslijst geconfigureerd = geen toegang (nooit automatisch volledige rechten geven)
+  if (!LIST_IDS.BEHEER_Toegang) { accessError = "Toegangslijst niet geconfigureerd. Contacteer Wim Cools."; return null; }
   try {
     // Haal alle records op en filter in JS (Email-kolom is mogelijk niet geïndexeerd in SharePoint)
     const data = await graphGet(`/sites/${CONFIG.siteId}/lists/${LIST_IDS.BEHEER_Toegang}/items?$expand=fields&$top=500`);
@@ -735,12 +738,14 @@ async function loadUserAccess(email) {
     const f = match.fields;
     return {
       naam: f.Naam || currentUser.name, email: f.Email, rol: f.Rol,
-      scholen: [f.SchoolKIE && "CS", f.SchoolKEI && "KO", f.SchoolMUL && "TE"].filter(Boolean),
+      scholen: [f.SchoolCS && "CS", f.SchoolKO && "KO", f.SchoolTE && "TE"].filter(Boolean),
       niveau: f.Niveau, sol: true,
     };
   } catch(e) {
-    console.warn('loadUserAccess fout, fallback gebruikt:', e.message);
-    return { naam: currentUser.name, email, scholen: ["CS","KO","TE"], niveau: "Directie", sol: true };
+    // Lezen van de toegangslijst mislukt: GEEN fallback-rechten geven
+    console.warn('loadUserAccess fout:', e.message);
+    accessError = "Je toegangsrechten konden niet geladen worden. Probeer later opnieuw of contacteer Wim Cools.";
+    return null;
   }
 }
 
