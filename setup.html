@@ -129,6 +129,15 @@
     <div class="log" id="log">Wacht op start...</div>
   </div>
 
+  <div class="card" id="step-ext" style="display:none">
+    <h2>Stap 4 — Uitbreiding: aanvangsbegeleiding en nascholing</h2>
+    <p style="margin-bottom:8px">Voegt per school 3 lijsten toe (<code>_Aanvang</code>, <code>_Begeleiding</code>, <code>_Nascholing</code>) en vult de gesprekstypes in <code>_Gesprekken</code> aan met de stappen van de functioneringscyclus.
+      Bestaande lijsten en gegevens blijven ongewijzigd; je mag deze stap gerust opnieuw uitvoeren.</p>
+    <p style="margin-bottom:16px;font-size:13px;color:var(--gray-600)">De lijst-ID's hoef je niet te kopiëren: LON-Leerkrachten zoekt ze bij het aanmelden zelf op naam op.</p>
+    <button class="btn btn-primary" onclick="startExtension()" id="btn-ext">Uitbreiding uitvoeren</button>
+    <div class="log" id="log-ext" style="margin-top:16px">Wacht op start...</div>
+  </div>
+
   <div class="card" id="step-ids" style="display:none">
     <h2>Stap 3 — Lijst-IDs kopiëren naar applicatie</h2>
     <p style="margin-bottom:4px">Kopieer onderstaande IDs naar de configuratie in <code>index.html</code> en <code>beheer.html</code> (sectie <code>LIST_IDS</code>).</p>
@@ -147,7 +156,7 @@
 <script>
 const DIRECTIES = {
   CS: { naam: "Katelijne Jespers", email: "directie@centrumschool.londerzeel.be" },
-  KO: { naam: "Farah De Clercq",  email: "directie@kouterschool.londerzeel.be" },
+  KO: { naam: "Farah De Clerck",  email: "directie@kouterschool.londerzeel.be" },
   TE: { naam: "Pieter Sarens",    email: "directie@terelst.londerzeel.be" },
 };
 </script>
@@ -294,6 +303,42 @@ const LISTS = [
   },
 ];
 
+// ── Uitbreiding (stap 4): aanvangsbegeleiding en nascholing ─────────────────
+const EXT_LISTS = ["CS","KO","TE"].flatMap(s => [
+  { name: `${s}_Aanvang`, columns: [
+    { name: "LeerkrachtId", type: "text" }, { name: "LeerkrachtNaam", type: "text" },
+    { name: "Startdatum", type: "dateTime" },
+    { name: "Statuut", type: "choice", choices: ["Tijdelijk bepaalde duur","TADD","Vast benoemd","Andere"] },
+    { name: "MeerDan104", type: "boolean" }, { name: "Inductie", type: "boolean" },
+    { name: "Aanvangsbegeleider", type: "text" }, { name: "PeterMeter", type: "text" },
+    { name: "EersteEvaluator", type: "text" }, { name: "TweedeEvaluator", type: "text" },
+    { name: "OvereenkomstDatum", type: "dateTime" }, { name: "InductieOvereenkomstDatum", type: "dateTime" },
+    { name: "Status", type: "choice", choices: ["Lopend","Afgerond","Stopgezet"] },
+    { name: "AfvinklijstJson", type: "note" },
+    { name: "School", type: "text" }, { name: "IngevoerdDoor", type: "text" },
+  ]},
+  { name: `${s}_Begeleiding`, columns: [
+    { name: "LeerkrachtId", type: "text" }, { name: "LeerkrachtNaam", type: "text" },
+    { name: "Datum", type: "dateTime" },
+    { name: "Type", type: "choice", choices: ["Kennismakingsgesprek","Opstarttraject (beginsituatie en werkpunten)","Klasbezoek","Reflectiegesprek","Tussentijdse reflectie","Intervisie","Andere"] },
+    { name: "DoorWie", type: "choice", choices: ["Aanvangsbegeleider","Peter/meter","Directie","Andere"] },
+    { name: "Omschrijving", type: "text" },
+    { name: "School", type: "text" }, { name: "IngevoerdDoor", type: "text" },
+  ]},
+  { name: `${s}_Nascholing`, columns: [
+    { name: "LeerkrachtId", type: "text" }, { name: "LeerkrachtNaam", type: "text" },
+    { name: "Aanbieder", type: "text" },
+    { name: "Thema", type: "choice", choices: ["ICT en digitale platformen","AI","Pedagogisch-didactisch","Zorg en welbevinden","Veiligheid en welzijn","Taal","Wiskunde","Andere"] },
+    { name: "Datum", type: "dateTime" }, { name: "Uren", type: "number" },
+    { name: "Status", type: "choice", choices: ["Besproken","Aangevraagd","Goedgekeurd","Ingeschreven","Gevolgd","Geannuleerd"] },
+    { name: "Verplicht", type: "boolean" }, { name: "Attest", type: "boolean" },
+    { name: "GesprekDatum", type: "dateTime" }, { name: "Kosten", type: "number" },
+    { name: "Opmerking", type: "note" },
+    { name: "School", type: "text" }, { name: "IngevoerdDoor", type: "text" },
+  ]},
+]);
+const GESPREK_TYPES_EXTRA = ["Bespreking functiebeschrijving","Klasbezoek ondersteunend","Lesbijwoning met verslag","Bespreking pedagogisch verslag"];
+
 // Document Library voor bijlagen
 const DOC_LIBRARY = { name: "SOL_Bijlagen", displayName: "Sollicitanten: Bijlagen" };
 
@@ -335,6 +380,79 @@ async function graphPost(url, body) {
   });
   if (!r.ok) { const e = await r.json(); throw new Error(e.error?.message || r.statusText); }
   return r.json();
+}
+
+async function graphReq(method, url, body) {
+  const r = await fetch(`https://graph.microsoft.com/v1.0${url}`, {
+    method, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!r.ok) { let m = r.statusText; try { const e = await r.json(); m = e.error?.message || m; } catch {} throw new Error(m); }
+  return r.status === 204 ? null : r.json();
+}
+
+async function startExtension() {
+  const btn = document.getElementById('btn-ext');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Bezig...';
+  logEl = document.getElementById('log-ext'); logLines = [];
+  const siteBase = `/sites/${CONFIG.siteId}`;
+  let fouten = 0;
+  try {
+    const accounts = msalApp.getAllAccounts();
+    const r = await msalApp.acquireTokenSilent({ scopes: ["Sites.ReadWrite.All"], account: accounts[0] });
+    token = r.accessToken;
+  } catch(e) { log('Token vernieuwen mislukt: ' + e.message, 'err'); }
+
+  // Bestaande lijsten ophalen
+  let bestaand = {};
+  try {
+    const data = await graphReq('GET', `${siteBase}/lists?$select=id,displayName&$top=999`);
+    for (const l of data.value) bestaand[l.displayName] = l.id;
+  } catch(e) { log('Lijsten ophalen mislukt: ' + e.message, 'err'); btn.disabled = false; btn.textContent = 'Opnieuw proberen'; return; }
+
+  // 1. Nieuwe lijsten aanmaken en ontbrekende kolommen toevoegen
+  for (const list of EXT_LISTS) {
+    try {
+      let id = bestaand[list.name];
+      if (id) log(`${list.name}: bestaat al, kolommen controleren...`, 'info');
+      else {
+        const created = await graphReq('POST', `${siteBase}/lists`, { displayName: list.name, list: { template: "genericList", hidden: false } });
+        id = created.id; listIds[list.name] = id;
+        log(`${list.name}: aangemaakt`, 'info');
+      }
+      const cols = await graphReq('GET', `${siteBase}/lists/${id}/columns?$select=name`);
+      const namen = new Set(cols.value.map(c => c.name));
+      let n = 0;
+      for (const col of list.columns) {
+        if (namen.has(col.name)) continue;
+        try { await graphReq('POST', `${siteBase}/lists/${id}/columns`, columnDef(col)); n++; }
+        catch(ce) { log(`  ⚠ Kolom '${col.name}': ${ce.message}`, 'warn'); fouten++; }
+      }
+      log(`  → ${n} kolom(men) toegevoegd`);
+    } catch(e) { log(`  ✗ ${list.name}: ${e.message}`, 'err'); fouten++; }
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  // 2. Gesprekstypes aanvullen in {S}_Gesprekken
+  for (const s of ["CS","KO","TE"]) {
+    const lijst = `${s}_Gesprekken`;
+    try {
+      const id = bestaand[lijst];
+      if (!id) { log(`${lijst}: niet gevonden, overgeslagen`, 'warn'); continue; }
+      const cols = await graphReq('GET', `${siteBase}/lists/${id}/columns`);
+      const type = cols.value.find(c => c.name === 'Type');
+      if (!type || !type.choice) { log(`${lijst}: kolom Type is geen keuzekolom, overgeslagen`, 'warn'); continue; }
+      const huidige = type.choice.choices || [];
+      const nieuw = [...huidige, ...GESPREK_TYPES_EXTRA.filter(t => !huidige.includes(t))];
+      if (nieuw.length === huidige.length) { log(`${lijst}: gesprekstypes al aangevuld`); continue; }
+      await graphReq('PATCH', `${siteBase}/lists/${id}/columns/${type.id}`, { choice: { ...type.choice, choices: nieuw } });
+      log(`${lijst}: ${nieuw.length - huidige.length} gesprekstype(s) toegevoegd`, 'info');
+    } catch(e) { log(`  ✗ ${lijst}: ${e.message}`, 'err'); fouten++; }
+  }
+
+  log('', '');
+  log(fouten ? `Klaar met ${fouten} fout(en). Bekijk het log en voer de stap eventueel opnieuw uit.` : '✅ Uitbreiding voltooid. Herlaad LON-Leerkrachten.', fouten ? 'warn' : 'info');
+  btn.disabled = false; btn.innerHTML = fouten ? 'Opnieuw uitvoeren' : '✅ Klaar';
 }
 
 function columnDef(col) {
@@ -504,6 +622,7 @@ async function msalInit() {
       document.getElementById('btn-login').innerHTML = '✅ Aangemeld';
       document.getElementById('btn-login').disabled = true;
       document.getElementById('step-create').style.display = 'block';
+      document.getElementById('step-ext').style.display = 'block';
       renderListGrid();
     }
   } catch(e) { console.error('handleRedirectPromise error:', e); }
