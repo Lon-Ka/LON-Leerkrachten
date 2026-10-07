@@ -319,7 +319,7 @@ window.addEventListener('message', function(event) {
         </div>
         <div>
           <div class="sb-logo-text">LON-Leerkrachten</div>
-          <div class="sb-logo-sub">Scholengemeenschap KaBo</div>
+          <div class="sb-logo-sub">Scholengroep Londerzeel BaO</div>
         </div>
       </div>
     </div>
@@ -1016,10 +1016,13 @@ function renderLeerkrachtenList(items) {
         <h1>${school.name}</h1>
         <div class="page-sub">${items.length} leerkracht${items.length!==1?'en':''}</div>
       </div>
+      <div style="display:flex;gap:8px">
+      <button class="btn" onclick="showFunctieKoppelen()">Functiebeschrijvingen koppelen</button>
       <button class="btn btn-primary" onclick="showAddLeerkracht()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Leerkracht toevoegen
       </button>
+      </div>
     </div>
     <div class="page-content">
       ${items.length === 0 ? `<div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><p>Nog geen leerkrachten toegevoegd.</p></div>` :
@@ -1071,7 +1074,9 @@ function renderLeerkrachtDetail(l, gesprekken, opmerkingen, popItems, aanvang = 
   const popActief = popItems.some(p => p.POPActief);
   const popDoelen = popItems.filter(p => p.Doel);
 
-  const tabs = ['functiebeschrijving','gesprekken','opmerkingen','pop','aanvang','nascholing'];
+  // Aanvangsbegeleiding is optioneel: het tabblad verschijnt pas als er een traject is (of als je er een start)
+  const toonAanvang = !!aanvang || currentLeerkrachtTab === 'aanvang';
+  const tabs = ['functiebeschrijving','gesprekken','opmerkingen','pop', ...(toonAanvang ? ['aanvang'] : []), 'nascholing'];
   const tabLabels = { functiebeschrijving:'Functiebeschrijving', gesprekken:`Gesprekken (${gesprekken.length})`, opmerkingen:`Opmerkingen (${opmerkingen.length})`, pop:`POP${popActief?' ✓':''}`,
     aanvang: `Aanvangsbegeleiding${aanvang && (aanvang.Status||'Lopend') === 'Lopend' ? ' •' : ''}`, nascholing: `Nascholing (${nascholing.length})` };
 
@@ -1088,6 +1093,7 @@ function renderLeerkrachtDetail(l, gesprekken, opmerkingen, popItems, aanvang = 
           <div class="page-sub">${l.Functie||''} · ${l.Opdracht||''}</div>
         </div>
       </div>
+      ${toonAanvang ? '' : `<button class="btn btn-sm" title="Enkel voor nieuwe personeelsleden" onclick="showLeerkracht('${l.id}','aanvang')">+ Aanvangsbegeleiding</button>`}
     </div>
     <div class="tabs">
       ${tabs.map(t => `<div class="tab ${currentLeerkrachtTab===t?'active':''}" onclick="showLeerkracht('${l.id}','${t}')">${tabLabels[t]}</div>`).join('')}
@@ -1109,7 +1115,7 @@ function renderFunctiebeschrijving(l) {
         <div><div class="card-title">Functiebeschrijving</div><div class="card-sub">${l.Functie||''} · ${l.Opdracht||''}</div></div>
         <button class="btn btn-sm" onclick="showEditFunctie()">✏️ Bewerken</button>
       </div>
-      <p style="font-size:13px;line-height:1.7;color:${l.Functiebeschrijving?'inherit':'var(--gray-400)'}">${l.Functiebeschrijving || 'Nog geen functiebeschrijving. Klik op Bewerken.'}</p>
+      <div style="font-size:13px;line-height:1.7;white-space:pre-wrap;color:${l.Functiebeschrijving?'inherit':'var(--gray-400)'}">${l.Functiebeschrijving ? esc(l.Functiebeschrijving) : 'Nog geen functiebeschrijving. Klik op Bewerken om er een te kiezen uit de functiebibliotheek.'}</div>
     </div>
     <div class="card">
       <div class="card-title" style="margin-bottom:12px">Basisgegevens</div>
@@ -1120,26 +1126,138 @@ function renderFunctiebeschrijving(l) {
     </div>`;
 }
 
+// Voorstel van sjabloon op basis van de functie uit Entra ID
+const FUNCTIE_SJABLOON = {
+  'Zorgcoördinator': 'ZOCO', 'Secretariaatsmedewerker': 'ADM', 'Directeur': 'DIR', 'Directie': 'DIR',
+  'ICT-coördinator': 'ICTTECH', 'Kinderverzorger': 'PARA', 'Zorgleerkracht': 'ZORG',
+  'Kleuteronderwijzer': 'KLO', 'Kleuterleerkracht': 'KLO', 'Leraar lager onderwijs': 'LLO',
+};
+function sjabloonVoorstel(l) { return FUNCTIE_SJABLOON[(l.Functie || '').trim()] || ''; }
+function sjabloonOpties(gekozen) {
+  return `<option value="">— Kies een sjabloon —</option>` +
+    FUNCTIES_BIBLIOTHEEK.map(f => `<option value="${f.code}" ${f.code === gekozen ? 'selected' : ''}>${esc(f.titel)}</option>`).join('');
+}
+
 function showEditFunctie() {
   const l = currentLeerkracht;
+  const opdrachten = ['','20%','40%','50%','60%','80%','100%'];
   showModal(`
-    <div class="modal-title">Functiebeschrijving bewerken</div>
-    <div class="fg"><label>Functiebeschrijving</label>
-      <textarea id="m-functie" rows="8" style="min-height:160px">${l.Functiebeschrijving||''}</textarea></div>
+    <div class="modal-title">Functiebeschrijving · ${esc(leerkrachtNaam(l))}</div>
+    <div class="form-grid">
+      <div class="fg"><label>Sjabloon uit de functiebibliotheek</label>
+        <select id="m-sjabloon" onchange="vulSjabloonIn(this.value)">${sjabloonOpties(l.Functiebeschrijving ? '' : sjabloonVoorstel(l))}</select></div>
+      <div class="fg"><label>Opdracht</label>
+        <select id="m-opdr">${opdrachten.map(o => `<option value="${o}" ${o === (l.Opdracht || '') ? 'selected' : ''}>${o || '—'}</option>`).join('')}</select></div>
+      <div class="fg fg-full"><label>Functiebeschrijving (pas gerust aan voor deze persoon)</label>
+        <textarea id="m-functie" rows="14" style="min-height:300px;font-size:12px">${esc(l.Functiebeschrijving || '')}</textarea></div>
+    </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Annuleren</button>
       <button class="btn btn-primary" onclick="saveFunctie('${l.id}')">Opslaan</button>
     </div>`);
+  // Leeg? Dan meteen het voorgestelde sjabloon invullen
+  if (!l.Functiebeschrijving && sjabloonVoorstel(l)) vulSjabloonIn(sjabloonVoorstel(l), true);
+}
+
+function vulSjabloonIn(code, stil) {
+  const f = FUNCTIES_BIBLIOTHEEK.find(x => x.code === code);
+  const ta = document.getElementById('m-functie');
+  if (!f || !ta) return;
+  if (!stil && ta.value.trim() && !confirm('De huidige tekst vervangen door het sjabloon "' + f.titel + '"?')) return;
+  ta.value = f.beschrijving;
 }
 
 async function saveFunctie(id) {
-  const val = document.getElementById('m-functie').value;
+  const fields = { Functiebeschrijving: document.getElementById('m-functie').value };
+  const opdr = document.getElementById('m-opdr')?.value;
+  if (opdr) fields.Opdracht = opdr;
   try {
-    await updateItem(LIST_IDS[`${currentSchool.key}_Leerkrachten`], id, { Functiebeschrijving: val });
+    await updateItem(LIST_IDS[`${currentSchool.key}_Leerkrachten`], id, fields);
     toast('Functiebeschrijving opgeslagen');
     closeModal();
     showLeerkracht(id, 'functiebeschrijving');
   } catch(e) { toast('Fout: ' + e.message); }
+}
+
+// ── In één keer koppelen voor een hele school ───────────────────
+let koppelItems = [];
+async function showFunctieKoppelen() {
+  const sk = currentSchool.key;
+  showLoader();
+  try {
+    koppelItems = (await getListItems(LIST_IDS[`${sk}_Leerkrachten`])).filter(i => i.Actief !== false)
+      .sort((a, b) => (a.Naam || '').localeCompare(b.Naam || '', 'nl'));
+    const zonder = koppelItems.filter(l => !l.Functiebeschrijving).length;
+    render(`
+      <div class="page-header">
+        <button class="btn btn-sm" onclick="showSchool('${sk}')">← ${esc(currentSchool.name)}</button>
+        <div style="flex:1;margin-left:8px"><h1>Functiebeschrijvingen koppelen</h1>
+          <div class="page-sub">${zonder} van ${koppelItems.length} personeelsleden hebben nog geen functiebeschrijving</div></div>
+        <button class="btn btn-primary" onclick="saveFunctieKoppelen()">Opslaan</button>
+      </div>
+      <div class="page-content">
+        <div class="card" style="background:var(--blue-bg);border-color:#BFDBFE;font-size:13px;color:#1E40AF;line-height:1.6">
+          Kies per persoon een sjabloon. Het voorstel is gebaseerd op de functie in Entra ID. Bij <strong>Leerkracht</strong> kies je zelf
+          kleuter of lager. Enkel aangevinkte rijen worden opgeslagen; bestaande, aangepaste teksten worden niet overschreven tenzij je ze aanvinkt.
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            Alle "Leerkracht" zonder sjabloon instellen op:
+            <button class="btn btn-sm" onclick="koppelZetAlle('LLO')">Leraar lager onderwijs</button>
+            <button class="btn btn-sm" onclick="koppelZetAlle('KLO')">Kleuteronderwijzer</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow-x:auto">
+          <table class="ov-table">
+            <thead><tr><th style="width:36px"><input type="checkbox" onchange="document.querySelectorAll('.kp-chk').forEach(c=>c.checked=this.checked)"></th>
+              <th>Personeelslid</th><th>Functie (Entra)</th><th>Huidige beschrijving</th><th>Sjabloon</th><th>Opdracht</th></tr></thead>
+            <tbody>${koppelItems.map(l => {
+              const voorstel = l.Functiebeschrijving ? '' : sjabloonVoorstel(l);
+              const huidig = l.Functiebeschrijving ? (FUNCTIES_BIBLIOTHEEK.find(f => l.Functiebeschrijving.startsWith(f.beschrijving.split('\n')[0]))?.titel || 'eigen tekst') : '';
+              return `<tr style="cursor:default">
+                <td><input type="checkbox" class="kp-chk" id="kp-c-${l.id}" ${!l.Functiebeschrijving && voorstel ? 'checked' : ''}></td>
+                <td><strong>${esc(leerkrachtNaam(l))}</strong></td>
+                <td>${esc(l.Functie || '')}</td>
+                <td>${huidig ? `<span class="tag tag-teal">${esc(huidig)}</span>` : '<span class="tag tag-amber">geen</span>'}</td>
+                <td><select id="kp-s-${l.id}" data-functie="${esc(l.Functie || '')}" onchange="document.getElementById('kp-c-${l.id}').checked = !!this.value" style="padding:5px;border:1px solid var(--gray-200);border-radius:6px;font-size:12px">${sjabloonOpties(voorstel)}</select></td>
+                <td><select id="kp-o-${l.id}" style="padding:5px;border:1px solid var(--gray-200);border-radius:6px;font-size:12px">${['','20%','40%','50%','60%','80%','100%'].map(o => `<option value="${o}" ${o === (l.Opdracht || '') ? 'selected' : ''}>${o || '—'}</option>`).join('')}</select></td>
+              </tr>`; }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`);
+  } catch(e) { render(`<div class="page-content"><div class="empty">Fout: ${esc(e.message)}</div></div>`); }
+}
+
+function koppelZetAlle(code) {
+  for (const l of koppelItems) {
+    const sel = document.getElementById(`kp-s-${l.id}`);
+    if (sel && !sel.value && !l.Functiebeschrijving && (l.Functie || '').trim() === 'Leerkracht') {
+      sel.value = code; document.getElementById(`kp-c-${l.id}`).checked = true;
+    }
+  }
+}
+
+async function saveFunctieKoppelen() {
+  const sk = currentSchool.key;
+  const taken = [];
+  for (const l of koppelItems) {
+    const aan = document.getElementById(`kp-c-${l.id}`)?.checked;
+    const code = document.getElementById(`kp-s-${l.id}`)?.value;
+    const opdr = document.getElementById(`kp-o-${l.id}`)?.value || '';
+    const fields = {};
+    if (aan && code) fields.Functiebeschrijving = FUNCTIES_BIBLIOTHEEK.find(f => f.code === code).beschrijving;
+    if (opdr !== (l.Opdracht || '') && opdr) fields.Opdracht = opdr;
+    if (Object.keys(fields).length) taken.push([l.id, fields]);
+  }
+  if (!taken.length) { toast('Niets te bewaren'); return; }
+  const overschrijf = taken.filter(([id, f]) => f.Functiebeschrijving && koppelItems.find(x => x.id === id).Functiebeschrijving).length;
+  if (overschrijf && !confirm(`${overschrijf} bestaande functiebeschrijving(en) worden vervangen door het sjabloon. Doorgaan?`)) return;
+  let ok = 0, fout = 0;
+  for (const [id, fields] of taken) {
+    try { await updateItem(LIST_IDS[`${sk}_Leerkrachten`], id, fields); ok++; }
+    catch(e) { fout++; console.warn(id, e.message); }
+  }
+  toast(`${ok} personeelsleden bijgewerkt${fout ? `, ${fout} fout(en)` : ''}`);
+  showFunctieKoppelen();
 }
 
 function renderGesprekken(l, items) {
@@ -2088,11 +2206,14 @@ function renderAanvang(l, aanvang, begeleiding, gesprekken) {
   const naam = leerkrachtNaam(l);
   if (!aanvang) {
     return `<div class="card">
-      <div class="card-title">Nog geen traject aanvangsbegeleiding</div>
+      <div class="card-title">Aanvangsbegeleiding starten</div>
       <p style="font-size:13px;color:var(--gray-600);margin:8px 0 14px;line-height:1.6">
-        Start een traject voor ${esc(naam)}. Je volgt dan op één plek de afvinklijst, de functioneringscyclus van het eerste jaar
+        Enkel voor <strong>nieuwe personeelsleden</strong>. Start je een traject voor ${esc(naam)}, dan volg je op één plek de afvinklijst, de functioneringscyclus van het eerste jaar
         en de begeleidingsmomenten op, en je kan de coachingshistoriek afdrukken.</p>
-      <button class="btn btn-primary" onclick="showTrajectModal('${l.id}')">+ Traject starten</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="showTrajectModal('${l.id}')">+ Traject starten</button>
+        <button class="btn" onclick="showLeerkracht('${l.id}','functiebeschrijving')">Annuleren</button>
+      </div>
     </div>`;
   }
   let afvink = {};
@@ -2287,7 +2408,7 @@ async function saveTraject(leerkrachtId) {
 
 async function deleteTraject(itemId, leerkrachtId) {
   if (!confirm('Het traject (incl. afvinklijst) verwijderen? Begeleidingsmomenten en gesprekken blijven bewaard.')) return;
-  try { await deleteItem(LIST_IDS[`${currentSchool.key}_Aanvang`], itemId); closeModal(); toast('Traject verwijderd'); showLeerkracht(leerkrachtId, 'aanvang'); }
+  try { await deleteItem(LIST_IDS[`${currentSchool.key}_Aanvang`], itemId); closeModal(); toast('Traject verwijderd'); showLeerkracht(leerkrachtId, 'functiebeschrijving'); }
   catch(e) { toast('Fout: ' + e.message); }
 }
 
