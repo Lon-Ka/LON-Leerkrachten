@@ -1046,12 +1046,12 @@ async function showLeerkracht(id, tab = 'functiebeschrijving') {
     const vanLk = items => items.filter(i => sameId(i.LeerkrachtId, id));
     const [l, gesprekken, opmerkingen, popItems, aanvangItems, begeleiding, nascholing] = await Promise.all([
       getListItems(LIST_IDS[`${currentSchool.key}_Leerkrachten`]).then(items => items.find(i => i.id === id)),
-      getListItems(LIST_IDS[`${currentSchool.key}_Gesprekken`]).then(items => items.filter(i => i.LeerkrachtId === id || i.LeerkrachtId === parseInt(id))),
-      getListItems(LIST_IDS[`${currentSchool.key}_Opmerkingen`]).then(items => items.filter(i => i.LeerkrachtId === id || i.LeerkrachtId === parseInt(id))),
-      getListItems(LIST_IDS[`${currentSchool.key}_POP`]).then(items => items.filter(i => i.LeerkrachtId === id || i.LeerkrachtId === parseInt(id))),
-      getListItems(LIST_IDS[`${sk}_Aanvang`]).then(vanLk),
-      getListItems(LIST_IDS[`${sk}_Begeleiding`]).then(vanLk),
-      getListItems(LIST_IDS[`${sk}_Nascholing`]).then(vanLk),
+      getListItemsSafe(LIST_IDS[`${sk}_Gesprekken`], `${sk}_Gesprekken`).then(vanLk),
+      getListItemsSafe(LIST_IDS[`${sk}_Opmerkingen`], `${sk}_Opmerkingen`).then(vanLk),
+      getListItemsSafe(LIST_IDS[`${sk}_POP`], `${sk}_POP`).then(vanLk),
+      getListItemsSafe(LIST_IDS[`${sk}_Aanvang`], `${sk}_Aanvang`).then(vanLk),
+      getListItemsSafe(LIST_IDS[`${sk}_Begeleiding`], `${sk}_Begeleiding`).then(vanLk),
+      getListItemsSafe(LIST_IDS[`${sk}_Nascholing`], `${sk}_Nascholing`).then(vanLk),
     ]);
     if (!l) { render(`<div class="page-content"><div class="empty">Leerkracht niet gevonden in ${esc(currentSchool.name)}.</div></div>`); return; }
     currentLeerkracht = l;
@@ -2057,15 +2057,25 @@ function openLeerkracht(sk, id, tab) {
   showLeerkracht(String(id), tab);
 }
 
-// Zoek de ID's van de nieuwe lijsten op naam, zodat er niets handmatig in LIST_IDS hoeft
+// Zoek alle lijst-ID's op naam op de site. Een ID dat in LIST_IDS staat maar niet (meer) klopt,
+// wordt zo automatisch gecorrigeerd. Lijsten die niet op naam gevonden worden, behouden hun ID.
 async function resolveListIds() {
-  const wanted = [];
-  for (const s of SCHOOLS) for (const n of EXT_LISTS) { const k = `${s.key}_${n}`; if (!LIST_IDS[k]) wanted.push(k); }
-  if (!wanted.length) return;
+  for (const s of SCHOOLS) for (const n of EXT_LISTS) { const k = `${s.key}_${n}`; if (!(k in LIST_IDS)) LIST_IDS[k] = ''; }
   try {
     const data = await graphGet(`/sites/${CONFIG.siteId}/lists?$select=id,displayName&$top=999`);
-    for (const l of (data.value || [])) if (wanted.includes(l.displayName)) LIST_IDS[l.displayName] = l.id;
+    for (const l of (data.value || [])) {
+      if (l.displayName in LIST_IDS && l.displayName !== 'SOL_Bijlagen') {
+        if (LIST_IDS[l.displayName] && LIST_IDS[l.displayName] !== l.id) console.info(`LIST_IDS.${l.displayName} gecorrigeerd naar ${l.id}`);
+        LIST_IDS[l.displayName] = l.id;
+      }
+    }
   } catch(e) { console.warn('resolveListIds:', e.message); }
+}
+
+// Lijst ophalen zonder dat één ontbrekende lijst de hele pagina laat mislukken
+async function getListItemsSafe(listId, label) {
+  try { return await getListItems(listId); }
+  catch(e) { console.warn(`Lijst ${label} niet geladen:`, e.message); toast(`Lijst ${label} kon niet geladen worden`); return []; }
 }
 
 // Gedeelde staat voor het tabblad aanvangsbegeleiding
