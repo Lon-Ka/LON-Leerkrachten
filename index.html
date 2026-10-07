@@ -7,6 +7,7 @@
 <style>
 :root {
   --teal-ka:       #1D9E75;
+  --teal:       #1D9E75;
   --teal-dark:  #0F6E56;
   --teal-light: #E1F5EE;
   --teal-mid:   #9FE1CB;
@@ -216,6 +217,30 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--gray-50);color
 /* ── Toast ── */
 #toast{position:fixed;bottom:20px;right:20px;background:var(--gray-900);color:white;padding:10px 16px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
 #toast.show{opacity:1}
+/* ── HANDLEIDING ─────────────────────────────────────── */
+.help-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9000;opacity:0;pointer-events:none;transition:opacity .25s}
+.help-overlay.on{opacity:1;pointer-events:all}
+.help-drawer{position:fixed;top:0;right:0;bottom:0;width:min(480px,100vw);background:white;z-index:9001;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,.15)}
+.help-drawer.on{transform:translateX(0)}
+.help-hdr{background:var(--teal-dark);color:white;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.help-hdr h2{font-size:15px;font-weight:700;margin:0}
+.help-close{background:rgba(255,255,255,.2);border:none;border-radius:8px;color:white;width:32px;height:32px;cursor:pointer;font-size:18px}
+.help-close:hover{background:rgba(255,255,255,.35)}
+.help-nav{display:flex;border-bottom:1px solid var(--gray-200);flex-shrink:0;overflow-x:auto}
+.help-tab{padding:10px 12px;font-size:12px;font-weight:600;color:var(--gray-500);cursor:pointer;border:none;border-bottom:2px solid transparent;white-space:nowrap;background:none;font-family:inherit}
+.help-tab:hover{color:var(--gray-900)}.help-tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.help-body{flex:1;overflow-y:auto;padding:1.25rem}
+.help-section{display:none}.help-section.active{display:block}
+.help-section h3{font-size:15px;font-weight:700;margin:0 0 .5rem;color:var(--teal-dark)}
+.help-section h4{font-size:11px;font-weight:700;color:var(--gray-500);margin:1rem 0 .35rem;text-transform:uppercase;letter-spacing:.04em}
+.help-section p{font-size:13px;color:var(--gray-700);line-height:1.65;margin:0 0 .75rem}
+.help-section ul{margin:.25rem 0 .75rem;padding-left:1.25rem}
+.help-section li{font-size:13px;color:var(--gray-700);line-height:1.65;margin-bottom:.3rem}
+.help-tip{border-left:3px solid var(--teal);border-radius:0 8px 8px 0;padding:.6rem .85rem;margin:.75rem 0;font-size:12px;line-height:1.55;background:var(--teal-light);color:var(--gray-700)}
+.help-step{display:flex;gap:.75rem;margin-bottom:.6rem}
+.help-step-nr{flex-shrink:0;width:22px;height:22px;background:var(--teal);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:2px}
+.help-step-txt{font-size:13px;color:var(--gray-700);line-height:1.6}
+.help-footer{padding:.75rem 1.25rem;border-top:1px solid var(--gray-200);font-size:11px;color:var(--gray-400);flex-shrink:0;text-align:center}
 </style>
 
 <script>
@@ -334,6 +359,10 @@ window.addEventListener('message', function(event) {
       <!-- dynamisch gebouwd -->
     </div>
     <div class="sb-footer">
+      <button onclick="openHelp()" style="margin-bottom:6px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Handleiding
+      </button>
       <button onclick="doLogout()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Afmelden
@@ -3017,6 +3046,143 @@ async function runImport() {
   if (ok > 0) toast(`${ok} leerkrachten geïmporteerd in ${SCHOOLS.find(s=>s.key===schoolKey)?.name}`);
 }
 
+</script>
+<!-- ═══ HANDLEIDING (help drawer) ═══ -->
+<div class="help-overlay" id="helpOverlay" onclick="closeHelp()"></div>
+<div class="help-drawer" id="helpDrawer" role="dialog" aria-label="Handleiding">
+  <div class="help-hdr">
+    <h2>&#9432; Handleiding &mdash; Leerkrachten Volgsysteem</h2>
+    <button class="help-close" onclick="closeHelp()" aria-label="Sluiten">&#x2715;</button>
+  </div>
+  <div class="help-nav">
+    <button class="help-tab active" onclick="showHelpTab('start',this)">Start</button>
+    <button class="help-tab" onclick="showHelpTab('fiche',this)">Personeelsfiche</button>
+    <button class="help-tab" onclick="showHelpTab('functie',this)">Functiebeschrijving</button>
+    <button class="help-tab" onclick="showHelpTab('aanvang',this)">Aanvangsbegeleiding</button>
+    <button class="help-tab" onclick="showHelpTab('nascholing',this)">Nascholing</button>
+    <button class="help-tab" onclick="showHelpTab('overig',this)">Overige</button>
+    <button class="help-tab" onclick="showHelpTab('privacy',this)">Privacy</button>
+  </div>
+  <div class="help-body">
+
+    <div class="help-section active" id="help-start">
+      <h3>Waarvoor dient deze app?</h3>
+      <p>Het Leerkrachten Volgsysteem bundelt de opvolging van het personeel van Centrumschool, Kouterschool en School Ter Elst: functiebeschrijving, gesprekken, opmerkingen, POP, aanvangsbegeleiding van nieuwe collega's en nascholing.</p>
+      <h4>Wie heeft toegang?</h4>
+      <p>Enkel de directies (voor hun eigen school) en de systeembeheerder. Personeelsleden zelf zien deze app niet. Je opent ze via <strong>MijnDigiLoket › Leerkrachten Volgsysteem</strong>.</p>
+      <h4>De zijbalk</h4>
+      <ul>
+        <li><strong>Dashboard</strong>: aantallen per school en nieuwe sollicitaties.</li>
+        <li><strong>Leerkrachten</strong>: de personeelslijst per school. Klik op een naam om de fiche te openen.</li>
+        <li><strong>Opvolging</strong>: overzichten over alle personeelsleden heen, voor aanvangsbegeleiding en nascholing.</li>
+        <li><strong>Sollicitanten</strong>: kandidaten voor openstaande functies.</li>
+        <li><strong>Beheer</strong>: functiebibliotheek en import.</li>
+      </ul>
+      <div class="help-tip"><strong>Personeelslijst:</strong> die wordt aangevuld vanuit de Microsoft 365-accounts (functie en school). Ontbreekt er iemand of staat er iemand te veel? Meld het aan de ICT-coördinator.</div>
+    </div>
+
+    <div class="help-section" id="help-fiche">
+      <h3>De personeelsfiche</h3>
+      <p>Per personeelslid zie je deze tabbladen:</p>
+      <ul>
+        <li><strong>Functiebeschrijving</strong>: de functiebeschrijving, opdracht en basisgegevens (zie tabblad Functiebeschrijving in deze handleiding).</li>
+        <li><strong>Gesprekken</strong>: functionerings-, evaluatie-, plannings- en informele gesprekken, en de stappen van de functioneringscyclus (bespreking functiebeschrijving, klasbezoek, lesbijwoning, bespreking pedagogisch verslag). Per gesprek noteer je een verslag en afspraken.</li>
+        <li><strong>Opmerkingen</strong>: korte notities over het functioneren.</li>
+        <li><strong>POP</strong>: persoonlijk ontwikkelingsplan met doelen, acties, deadline en voortgang.</li>
+        <li><strong>Aanvangsbegeleiding</strong>: verschijnt enkel als er een traject loopt (zie verder).</li>
+        <li><strong>Nascholing</strong>: gevolgde en geplande nascholingen.</li>
+      </ul>
+      <div class="help-tip"><strong>Nieuw personeelslid?</strong> Rechts bovenaan de fiche staat de knop <strong>+ Aanvangsbegeleiding</strong>.</div>
+    </div>
+
+    <div class="help-section" id="help-functie">
+      <h3>Functiebeschrijving koppelen</h3>
+      <p>De functiebeschrijvingen komen uit de <strong>functiebibliotheek</strong> (OVSG-gebaseerd). Elk personeelslid krijgt een eigen kopie die je per persoon kan aanpassen.</p>
+      <h4>Voor één personeelslid</h4>
+      <div class="help-step"><div class="help-step-nr">1</div><div class="help-step-txt">Open de fiche › tabblad <strong>Functiebeschrijving</strong> › <strong>Bewerken</strong>.</div></div>
+      <div class="help-step"><div class="help-step-nr">2</div><div class="help-step-txt">Kies een <strong>sjabloon</strong>. Is er nog geen tekst, dan staat er al een voorstel klaar op basis van de functie.</div></div>
+      <div class="help-step"><div class="help-step-nr">3</div><div class="help-step-txt">Pas de tekst aan waar nodig, kies de <strong>opdracht</strong> (20% tot 100%) en klik <strong>Opslaan</strong>.</div></div>
+      <h4>Voor de hele school in één keer</h4>
+      <div class="help-step"><div class="help-step-nr">1</div><div class="help-step-txt">Open je school in de zijbalk en klik <strong>Functiebeschrijvingen koppelen</strong>.</div></div>
+      <div class="help-step"><div class="help-step-nr">2</div><div class="help-step-txt">Gebruik de knoppen om alle leerkrachten in één klik op <strong>Leraar lager onderwijs</strong> of <strong>Kleuteronderwijzer</strong> te zetten, en pas daarna de uitzonderingen aan.</div></div>
+      <div class="help-step"><div class="help-step-nr">3</div><div class="help-step-txt">Controleer de vinkjes en klik <strong>Opslaan</strong>. Enkel aangevinkte rijen worden bijgewerkt.</div></div>
+      <div class="help-tip">Bestaande, aangepaste teksten worden nooit zonder bevestiging overschreven. Wijzig je later een sjabloon, dan verandert de tekst bij wie al gekoppeld is niet vanzelf.</div>
+      <p>De functiebeschrijving bespreek je in de <strong>eerste maand</strong> met nieuwe personeelsleden (bij een opdracht van meer dan 104 dagen).</p>
+    </div>
+
+    <div class="help-section" id="help-aanvang">
+      <h3>Aanvangsbegeleiding</h3>
+      <p>Enkel voor <strong>nieuwe personeelsleden</strong>. Het traject bundelt alles uit de documenten van LONKA: de overeenkomst, de afvinklijst, de functioneringscyclus en de coachingshistoriek.</p>
+      <h4>Traject starten</h4>
+      <div class="help-step"><div class="help-step-nr">1</div><div class="help-step-txt">Open de fiche › <strong>+ Aanvangsbegeleiding</strong> › <strong>Traject starten</strong>.</div></div>
+      <div class="help-step"><div class="help-step-nr">2</div><div class="help-step-txt">Vul de startdatum, het statuut, de aanvangsbegeleider en peter/meter in. De evaluatoren staan al ingevuld (directeur en Ann Steenackers).</div></div>
+      <div class="help-step"><div class="help-step-nr">3</div><div class="help-step-txt">Duid aan of de opdracht <strong>meer dan 104 dagen</strong> is en of het een <strong>inductiejaar</strong> is. Vul de datum in waarop de overeenkomst(en) getekend werden.</div></div>
+      <h4>Wat zie je daarna?</h4>
+      <ul>
+        <li><strong>Functioneringscyclus</strong>: 1e maand bespreking functiebeschrijving, 2e maand klasbezoek ter ondersteuning, 3e maand lesbijwoningen met pedagogisch verslag en de bespreking ervan, later functionerings- en eventueel evaluatiegesprek. Elke stap toont een streefdatum en kleurt groen (gebeurd), rood (achterstallig) of grijs (gepland). Met <strong>+ Noteren</strong> registreer je de stap als gesprek.</li>
+        <li><strong>Begeleidingsmomenten</strong>: momenten met de aanvangsbegeleider of peter/meter. Noteer enkel een <strong>bondige omschrijving</strong>, zoals in de coachingshistoriek.</li>
+        <li><strong>Afvinklijst</strong>: het stappenplan voor de ontvangst (gesprek, documenten, inlogcodes, praktisch tonen, LONKA). Aanvinken bewaart meteen met datum en naam.</li>
+      </ul>
+      <h4>Coachingshistoriek afdrukken</h4>
+      <p>Klik <strong>Coachingshistoriek</strong> in de kaart van het traject. Je krijgt het document in de opmaak van het sjabloon, met alle begeleidingsmomenten en cyclusstappen, klaar om te laten paraferen. Stamboeknummer en geboortedatum vul je met de hand in; die worden niet in de app bewaard.</p>
+      <div class="help-tip"><strong>Begeleiding is geen evaluatie.</strong> Wat de nieuwe collega met de aanvangsbegeleider bespreekt, blijft vertrouwelijk. Noteer daarom geen inhoud van die gesprekken.</div>
+      <p>Het overzicht van alle trajecten vind je onder <strong>Opvolging › Aanvangsbegeleiding</strong>. Achterstallige stappen staan bovenaan.</p>
+    </div>
+
+    <div class="help-section" id="help-nascholing">
+      <h3>Nascholing</h3>
+      <p>Een nascholing wordt aangevraagd <strong>na een gesprek met de directeur</strong> (professionaliseringsbeleid). Je volgt ze op per personeelslid.</p>
+      <h4>Registreren</h4>
+      <div class="help-step"><div class="help-step-nr">1</div><div class="help-step-txt">Open de fiche › tabblad <strong>Nascholing</strong> › <strong>+ Nascholing</strong>.</div></div>
+      <div class="help-step"><div class="help-step-nr">2</div><div class="help-step-txt">Vul titel, aanbieder, thema, datum, uren en eventueel kosten in, en de datum van het gesprek met de directeur.</div></div>
+      <div class="help-step"><div class="help-step-nr">3</div><div class="help-step-txt">Werk de <strong>status</strong> bij: Besproken › Aangevraagd › Goedgekeurd › Ingeschreven › Gevolgd (of Geannuleerd). Vink <strong>Attest ontvangen</strong> aan zodra het attest binnen is.</div></div>
+      <div class="help-tip">Elke leerkracht volgt minstens het <strong>AI-basistraject Kennismaker</strong>. Zolang dat niet als gevolgd geregistreerd is, toont de app een herinnering met een knop om het meteen toe te voegen.</div>
+      <h4>Overzicht per schooljaar</h4>
+      <p>Onder <strong>Opvolging › Nascholing</strong> zie je per schooljaar en per school het aantal gevolgde nascholingen, de uren per thema en de kosten. Met <strong>CSV</strong> exporteer je de lijst naar Excel, bv. voor het professionaliseringsplan of de rapportering.</p>
+    </div>
+
+    <div class="help-section" id="help-overig">
+      <h3>Overige onderdelen</h3>
+      <h4>Sollicitanten</h4>
+      <p>Kandidaten voor openstaande functies, met gesprekken, documenten en referenties. Statussen: Nieuw › Uitgenodigd › Gesprek › Beslissing › Afgesloten.</p>
+      <h4>Functiebibliotheek</h4>
+      <p>De standaardfunctiebeschrijvingen: leraar lager onderwijs, kleuteronderwijzer, zorgleerkracht, zorgcoördinator, directeur, administratief medewerker, ICT-coördinator (technisch en pedagogisch) en kinderverzorger.</p>
+      <h4>Import leerkrachten</h4>
+      <p>Om een personeelslid manueel toe te voegen. Normaal gebeurt dit centraal vanuit de Microsoft 365-accounts door de ICT-coördinator.</p>
+      <h4>Onboarding coach (Copilot-agent)</h4>
+      <p>Nieuwe collega's kunnen hun praktische vragen stellen aan de agent <strong>Onboarding coach</strong> in Microsoft 365 Copilot: wegwijs in de school, arbeidsreglement, aanvangsbegeleiding, digitale afspraken. Zo komen minder basisvragen bij de directie terecht. Voor ICT-problemen verwijst de agent naar <strong>Technische Support LON</strong>, voor platformen naar <strong>Digitale Platformhulp</strong> en voor lesdoelen naar de <strong>Leer Lokaal Coach</strong>.</p>
+    </div>
+
+    <div class="help-section" id="help-privacy">
+      <h3>Privacy en goede afspraken</h3>
+      <ul>
+        <li>De gegevens staan op een <strong>afgeschermde SharePoint-site</strong> waar enkel de directies en de systeembeheerder toegang toe hebben.</li>
+        <li>Noteer <strong>feiten en afspraken</strong>, geen waardeoordelen of geruchten. Een personeelslid heeft recht op inzage in wat over hem of haar bewaard wordt.</li>
+        <li>Zet <strong>geen leerlinggegevens</strong> of zorginformatie in de app.</li>
+        <li>Begeleidingsmomenten: enkel een bondige omschrijving, geen inhoud.</li>
+        <li>Medische informatie hoort hier niet thuis.</li>
+        <li>Laat de app niet open staan op een gedeelde computer: meld af via de zijbalk.</li>
+      </ul>
+      <div class="help-tip">Vragen of iets werkt niet? Contacteer de ICT-coördinator: ict@londerwijs.londerzeel.be</div>
+    </div>
+
+  </div>
+  <div class="help-footer">Scholengroep Londerzeel BaO — ict@londerwijs.londerzeel.be</div>
+</div>
+<script>
+function openHelp(){ document.getElementById('helpOverlay').classList.add('on'); document.getElementById('helpDrawer').classList.add('on'); }
+function closeHelp(){ document.getElementById('helpOverlay').classList.remove('on'); document.getElementById('helpDrawer').classList.remove('on'); }
+function showHelpTab(id, btn){
+  document.querySelectorAll('#helpDrawer .help-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('#helpDrawer .help-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('help-' + id).classList.add('active'); btn.classList.add('active');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHelp(); });
+// De knop "? Help" in MijnDigiLoket stuurt OPEN_HELP naar de app
+window.addEventListener('message', e => {
+  if (e.origin !== 'https://lon-ka.github.io') return;
+  if (e.data && e.data.type === 'OPEN_HELP') openHelp();
+});
 </script>
 </body>
 </html>
