@@ -731,13 +731,17 @@ async function loadUserAccess(email) {
   try {
     // Haal alle records op en filter in JS (Email-kolom is mogelijk niet geïndexeerd in SharePoint)
     const data = await graphGet(`/sites/${CONFIG.siteId}/lists/${LIST_IDS.BEHEER_Toegang}/items?$expand=fields&$top=500`);
-    const match = (data.value || []).find(item =>
-      item.fields && item.fields.Email && item.fields.Email.toLowerCase() === email.toLowerCase() && item.fields.Actief !== false
-    );
+    // Vergelijk met de kolom Email, en anders met Title (oudere rijen hebben het adres enkel in Title)
+    const me = (email || '').toLowerCase();
+    const match = (data.value || []).find(item => {
+      const f = item.fields || {};
+      if (f.Actief === false) return false;
+      return [f.Email, f.Title].some(a => (a || '').trim().toLowerCase() === me);
+    });
     if (!match) return null;
     const f = match.fields;
     return {
-      naam: f.Naam || currentUser.name, email: f.Email, rol: f.Rol,
+      naam: f.Naam || currentUser.name, email: f.Email || f.Title, rol: f.Rol,
       scholen: [f.SchoolCS && "CS", f.SchoolKO && "KO", f.SchoolTE && "TE"].filter(Boolean),
       niveau: f.Niveau, sol: true,
     };
